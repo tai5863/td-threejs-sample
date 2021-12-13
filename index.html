@@ -20,7 +20,7 @@ let scene, camera, pointLight, renderer, controls;
 init();
 
 function init() {
-    // 非同期処理
+    // jsonファイルの読み込み
     fetch('/data/cam_info.json')
         .then(response => response.json())
         .then(async cameraData => {
@@ -62,7 +62,7 @@ function init() {
 }
 
 function addInstacedMesh() {
-    // 非同期処理
+    // jsonファイルの読み込み
     fetch('/data/instances.json')
         .then(response => response.json())
         .then(async instanceData => {
