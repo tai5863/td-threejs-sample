@@ -27,7 +27,6 @@ function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(cameraData['fov'], window.innerWidth / window.innerHeight, cameraData['near'], cameraData['far']);
             camera.position.z = cameraData['tz']; 
-            console.log(cameraData);
 
             // レンダラーの作成
             renderer = new THREE.WebGLRenderer({ antialias: true });
