@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>TD - Three.js Sample</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script src="https://unpkg.com/three@0.135/examples/js/controls/OrbitControls.js"></script>
+    </head>
+    <body>
+
+    </body>
+</html>
+
+<script>
+// レンダラー用の変数
+let scene, camera, pointLight, renderer, controls;
+
+init();
+
+function init() {
+    // 非同期処理
+    fetch('/data/cam_info.json')
+        .then(response => response.json())
+        .then(async cameraData => {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(cameraData['fov'], window.innerWidth / window.innerHeight, cameraData['near'], cameraData['far']);
+            camera.position.z = cameraData['tz']; 
+            console.log(cameraData);
+
+            // レンダラーの作成
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            document.body.appendChild(renderer.domElement);
+
+            // リサイズ処理
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+            onWindowResize();
+            window.addEventListener('resize', onWindowResize, false);
+
+            // ライトのセッティング (環境光、方向光)
+            pointLight = new THREE.PointLight(0xffffff, 1);
+            pointLight.position.set(0, 0, 10);
+            scene.add(pointLight);
+
+            // カメラコントロールのセッティング
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+            // メッシュの作成
+            addInstacedMesh();
+
+            // 描画開始
+            draw();
+        })
+}
+
+function addInstacedMesh() {
+    // 非同期処理
+    fetch('/data/instances.json')
+        .then(response => response.json())
+        .then(async instanceData => {
+            // ジオメトリ (箱の大きさをTDに合わせる)
+            let geometry = new THREE.BoxGeometry(1, 1, 1);
+
+            // マテリアル
+            let material = new THREE.MeshPhongMaterial();
+
+            // メッシュ (インスタンシング)
+            let mesh = new THREE.InstancedMesh(geometry, material, instanceData.length);
+
+            let matrix = new THREE.Matrix4();
+            for (let i = 0; i < instanceData.length; i++) {
+                let instance = instanceData[i];
+
+                let position = new THREE.Vector3(instance['tx'], instance['ty'], instance['tz']);
+                let rotation = new THREE.Vector3(instance['rx'] * Math.PI / 180, instance['ry'] * Math.PI / 180, instance['rz'] * Math.PI / 180);
+                let scale = new THREE.Vector3(instance['scale'], instance['scale'], instance['scale']);
+                let color = new THREE.Color(instance['r'], instance['g'], instance['b']);
+
+                // 行列の計算を行って、インスタンシングの位置、角度、スケールを設定
+                matrix = new THREE.Matrix4().multiplyMatrices(new THREE.Matrix4().makeRotationY(rotation.y), new THREE.Matrix4().makeRotationX(rotation.x));
+                matrix.premultiply(new THREE.Matrix4().makeRotationZ(rotation.z));
+                matrix.scale(scale);
+                matrix.setPosition(position);
+                mesh.setMatrixAt(i, matrix);
+
+                // 色の設定
+                mesh.setColorAt(i, color);
+            }
+            scene.add(mesh);
+        })
+}
+
+function draw() {
+    // レンダラー、カメラコントロールのアップデート
+    renderer.render(scene, camera);
+    controls.update();
+
+    // 描画更新
+    requestAnimationFrame(draw);
+}
+</script>
+
+<style>
+body {
+    margin: 0;
+}
+</style>
